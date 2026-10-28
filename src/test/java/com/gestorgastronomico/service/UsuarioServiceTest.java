@@ -65,6 +65,43 @@ class UsuarioServiceTest {
         assertNull(UsuarioService.normalizarEmail(null));
     }
 
+    @Test
+    void conContraseñaDeFabrica_elMozoNoEntra_yElAdminSi() {
+        Usuario mozo = Usuario.builder().id(4L).email("mozo@miapp.com").password("hash").rol(Rol.MOZO)
+                .activo(true).debeConfigurar(true).build();
+        Usuario admin = Usuario.builder().id(1L).email("admin@miapp.com").password("hash").rol(Rol.ADMIN)
+                .activo(true).debeConfigurar(true).build();
+        when(usuarioRepository.findByEmail("mozo@miapp.com")).thenReturn(Optional.of(mozo));
+        when(usuarioRepository.findByEmail("admin@miapp.com")).thenReturn(Optional.of(admin));
+        when(passwordEncoder.matches("mozo123", "hash")).thenReturn(true);
+        when(passwordEncoder.matches("admin123", "hash")).thenReturn(true);
+
+        assertThrows(BusinessException.class, () -> usuarioService.login("mozo@miapp.com", "mozo123"));
+        assertTrue(usuarioService.login("admin@miapp.com", "admin123").orElseThrow().isDebeConfigurar());
+    }
+
+    @Test
+    void configurarCuenta_pideDatosReales_yDespuesQuedaConfigurada() {
+        Usuario admin = Usuario.builder().id(1L).nombre("Administrador").email("admin@miapp.com").password("hash")
+                .rol(Rol.ADMIN).activo(true).debeConfigurar(true).build();
+        when(usuarioRepository.findByEmail("admin@miapp.com")).thenReturn(Optional.of(admin));
+        lenient().when(usuarioRepository.findByEmail("mariel@gmail.com")).thenReturn(Optional.empty());
+        lenient().when(usuarioRepository.save(any(Usuario.class))).thenAnswer(inv -> inv.getArgument(0));
+        lenient().when(passwordEncoder.encode(any())).thenReturn("nuevo-hash");
+
+        assertThrows(BusinessException.class,
+                () -> usuarioService.configurarCuenta("admin@miapp.com", "Mariel", "admin@miapp.com", "unaClaveLarga"));
+        assertThrows(BusinessException.class,
+                () -> usuarioService.configurarCuenta("admin@miapp.com", "Mariel", "mariel@gmail.com", "corta"));
+        assertThrows(BusinessException.class,
+                () -> usuarioService.configurarCuenta("admin@miapp.com", "", "mariel@gmail.com", "unaClaveLarga"));
+
+        UsuarioResponseDTO listo = usuarioService.configurarCuenta("admin@miapp.com", " Mariel ", "Mariel@Gmail.com", "unaClaveLarga");
+        assertEquals("Mariel", listo.getNombre());
+        assertEquals("mariel@gmail.com", listo.getEmail());
+        assertFalse(listo.isDebeConfigurar());
+    }
+
     private static UsuarioRequestDTO pedido(String nombre, String email) {
         UsuarioRequestDTO dto = new UsuarioRequestDTO();
         dto.setNombre(nombre);

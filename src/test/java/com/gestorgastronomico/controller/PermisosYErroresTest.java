@@ -63,6 +63,20 @@ class PermisosYErroresTest {
 
     @Test
     @WithMockUser(roles = "COCINA")
+    void cocina_noCancelaPlatosNiComandas() throws Exception {
+        mockMvc.perform(patch("/api/pedidos/1/cancelar")).andExpect(status().isForbidden());
+        mockMvc.perform(patch("/api/pedidos/1/detalles/2/cancelar")).andExpect(status().isForbidden());
+    }
+
+    @Test
+    @WithMockUser(roles = "CONFIGURAR_CUENTA")
+    void conContraseñaDeFabrica_noUsaElPanel() throws Exception {
+        mockMvc.perform(get("/api/pedidos/activos")).andExpect(status().isForbidden());
+        mockMvc.perform(get("/api/usuarios")).andExpect(status().isForbidden());
+    }
+
+    @Test
+    @WithMockUser(roles = "COCINA")
     void cocina_noPuedeVerReservas() throws Exception {
         mockMvc.perform(get("/api/reservas/hoy")).andExpect(status().isForbidden());
     }

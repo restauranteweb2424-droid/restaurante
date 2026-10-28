@@ -73,10 +73,14 @@ public class UsuarioService {
         if (nuevaPassword == null || nuevaPassword.length() < 6) {
             throw new BusinessException("La contraseña debe tener al menos 6 caracteres");
         }
+        if (CLAVES_DE_FABRICA.contains(nuevaPassword)) {
+            throw new BusinessException("Esa es una contraseña de fábrica. Elegí otra.");
+        }
         Usuario usuario = usuarioRepository.findByEmail(email.trim())
                 .filter(Usuario::estaActivo)
                 .orElseThrow(() -> new BusinessException("No existe un usuario activo con ese email"));
         usuario.setPassword(passwordEncoder.encode(nuevaPassword));
+        usuario.setDebeConfigurar(false);
         usuarioRepository.save(usuario);
     }
 
@@ -118,6 +122,9 @@ public class UsuarioService {
         if (dto.getPassword().length() < 6) {
             throw new BusinessException("La contraseña debe tener al menos 6 caracteres");
         }
+        if (CLAVES_DE_FABRICA.contains(dto.getPassword())) {
+            throw new BusinessException("Esa es una contraseña de fábrica. Elegí otra.");
+        }
         Usuario usuario = Usuario.builder()
                 .nombre(dto.getNombre())
                 .email(dto.getEmail())
@@ -152,7 +159,12 @@ public class UsuarioService {
             if (dto.getPassword().length() < 6) {
                 throw new BusinessException("La contraseña debe tener al menos 6 caracteres");
             }
+            if (CLAVES_DE_FABRICA.contains(dto.getPassword())) {
+                throw new BusinessException("Esa es una contraseña de fábrica. Elegí otra.");
+            }
             usuario.setPassword(passwordEncoder.encode(dto.getPassword()));
+            // Con una contraseña nueva puesta por el admin, ya puede entrar.
+            usuario.setDebeConfigurar(false);
         }
         usuario.setRol(dto.getRol());
 
@@ -186,10 +198,13 @@ public class UsuarioService {
     @Transactional(readOnly = true)
     public Optional<UsuarioResponseDTO> login(String email, String password) {
         if (email == null || password == null) return Optional.empty();
-        return usuarioRepository.findByEmail(email.trim())
+        Optional<Usuario> usuario = usuarioRepository.findByEmail(normalizarEmail(email))
                 .filter(Usuario::estaActivo)
-                .filter(u -> passwordEncoder.matches(password, u.getPassword()))
-                .map(this::toDTO);
+                .filter(u -> passwordEncoder.matches(password, u.getPassword()));
+        if (usuario.isPresent() && usuario.get().tieneQueConfigurar() && usuario.get().getRol() != Rol.ADMIN) {
+            throw new BusinessException("Tu usuario todavía tiene la contraseña de fábrica. Pedile al admin que te ponga una nueva en Usuarios.");
+        }
+        return usuario.map(this::toDTO);
     }
 
     @Transactional(readOnly = true)
@@ -210,6 +225,51 @@ public class UsuarioService {
                 .email(u.getEmail())
                 .rol(u.getRol())
                 .activo(u.estaActivo())
+                .debeConfigurar(u.tieneQueConfigurar())
                 .build();
     }
+
+    /**
+     * Primer ingreso del admin con la contraseña de fábrica: carga su nombre, su
+     * email y una contraseña propia. Hasta hacerlo no puede usar el resto del panel.
+     */
+    public UsuarioResponseDTO configurarCuenta(String emailActual, String nombre, String email, String password) {
+        Usuario usuario = usuarioRepository.findByEmail(emailActual)
+                .filter(Usuario::estaActivo)
+                .orElseThrow(() -> new BusinessException("La sesión ya no es válida. Volvé a ingresar."));
+        if (!usuario.tieneQueConfigurar()) {
+            throw new BusinessException("Tu cuenta ya está configurada.");
+        }
+        if (usuario.getRol() != Rol.ADMIN) {
+            throw new BusinessException("Pedile al admin que te ponga una contraseña nueva en Usuarios.");
+        }
+        String nombreLimpio = nombre == null ? "" : nombre.trim();
+        if (nombreLimpio.isEmpty()) throw new BusinessException("Escribí tu nombre.");
+        if (nombreLimpio.length() > 60) throw new BusinessException("El nombre puede tener hasta 60 letras.");
+        String emailNuevo = normalizarEmail(email);
+        if (emailNuevo == null || !emailNuevo.matches("^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$") || emailNuevo.length() > 100) {
+            throw new BusinessException("Escribí un email válido.");
+        }
+        if (emailNuevo.endsWith("@miapp.com")) {
+            throw new BusinessException("Usá tu email real, no el de ejemplo.");
+        }
+        boolean usadoPorOtro = usuarioRepository.findByEmail(emailNuevo)
+                .filter(otro -> !otro.getId().equals(usuario.getId()))
+                .isPresent();
+        if (usadoPorOtro) throw new BusinessException("Ese email ya lo usa otro usuario.");
+        if (password == null || password.length() < 8) {
+            throw new BusinessException("La contraseña tiene que tener al menos 8 caracteres.");
+        }
+        if (CLAVES_DE_FABRICA.contains(password) || passwordEncoder.matches(password, usuario.getPassword())) {
+            throw new BusinessException("Elegí una contraseña nueva, distinta a la de fábrica.");
+        }
+        usuario.setNombre(nombreLimpio);
+        usuario.setEmail(emailNuevo);
+        usuario.setPassword(passwordEncoder.encode(password));
+        usuario.setDebeConfigurar(false);
+        return toDTO(usuarioRepository.save(usuario));
+    }
+
+    /** Contraseñas con las que se crearon los usuarios iniciales en versiones anteriores. */
+    public static final java.util.Set<String> CLAVES_DE_FABRICA = java.util.Set.of("admin123", "cajero123", "cocina123", "mozo123");
 }

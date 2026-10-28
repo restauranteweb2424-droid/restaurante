@@ -17,4 +17,6 @@ public class UsuarioResponseDTO {
     private Rol rol;
     /** false = desactivado. */
     private boolean activo;
+    /** true = tiene la contraseña de fábrica y todavía no completó sus datos. */
+    private boolean debeConfigurar;
 }

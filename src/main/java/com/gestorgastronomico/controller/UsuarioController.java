@@ -112,6 +112,17 @@ public class UsuarioController {
                 .orElseGet(() -> ResponseEntity.status(HttpStatus.UNAUTHORIZED).build());
     }
 
+    @PatchMapping("/configurar-cuenta")
+    @Operation(summary = "Primer ingreso: el admin carga su nombre, email y contraseña",
+               description = "Solo para el usuario con la contraseña de fábrica. Devuelve un token nuevo (el email puede cambiar).")
+    public ResponseEntity<Map<String, Object>> configurarCuenta(@RequestBody Map<String, String> body,
+                                                                java.security.Principal principal) {
+        UsuarioResponseDTO usuario = usuarioService.configurarCuenta(principal.getName(),
+                body.get("nombre"), body.get("email"), body.get("password"));
+        String token = jwtUtil.generarToken(usuario.getEmail(), usuario.getRol().name());
+        return ResponseEntity.ok(Map.of("token", token, "usuario", usuario));
+    }
+
     @PatchMapping("/{id}/reactivar")
     @Operation(summary = "Reactivar un usuario desactivado")
     public ResponseEntity<UsuarioResponseDTO> reactivar(@PathVariable Long id) {

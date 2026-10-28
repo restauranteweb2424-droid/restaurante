@@ -110,6 +110,12 @@ public class VentaController {
         return ResponseEntity.ok(ventaService.sesionesDe(fecha != null ? fecha : ventaService.jornadaActual()));
     }
 
+    @GetMapping("/cajas-cerradas")
+    @Operation(summary = "Últimas cajas cerradas", description = "Una línea por caja: apertura, cierre, total, ventas y diferencia del arqueo.")
+    public ResponseEntity<List<Map<String, Object>>> cajasCerradas(@RequestParam(defaultValue = "30") int limite) {
+        return ResponseEntity.ok(ventaService.cajasCerradas(limite));
+    }
+
     @GetMapping("/informe")
     @Operation(summary = "Informe de un período: totales, envíos, medios de pago y ranking")
     public ResponseEntity<Map<String, Object>> informe(

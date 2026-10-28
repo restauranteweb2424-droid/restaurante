@@ -217,8 +217,12 @@ public class PedidoService {
     public PedidoResponseDTO cancelar(Long id, String motivo) {
         Pedido pedido = buscar(id);
         verificarPuedeEditar(pedido);
-        // La comanda entera la puede cancelar cualquiera que la atienda: es criterio del local.
-        if ((tieneRol(Rol.MOZO) || tieneRol(Rol.COCINA)) && !pedido.esComandaPorTarjetas()) {
+        // Cocina no cancela: si falta algo, avisa al mozo o al cajero.
+        if (tieneRol(Rol.COCINA)) {
+            throw new BusinessException("Cocina no cancela pedidos. Avisale al mozo o al cajero.");
+        }
+        // La comanda de mesa la puede cancelar el mozo que la atiende; el resto, el cajero.
+        if (tieneRol(Rol.MOZO) && !pedido.esComandaPorTarjetas()) {
             throw new BusinessException("Este pedido lo cancela el cajero.");
         }
         if (pedido.getEstado() == EstadoPedido.CANCELADO) {
@@ -362,6 +366,9 @@ public class PedidoService {
      * entregado, solo lo puede sacar el cajero o el admin.
      */
     public PedidoResponseDTO cancelarTarjeta(Long pedidoId, Long detalleId) {
+        if (tieneRol(Rol.COCINA)) {
+            throw new BusinessException("Cocina no saca platos. Avisale al mozo o al cajero.");
+        }
         Pedido pedido = buscarComanda(pedidoId);
         verificarPuedeEditar(pedido);
         DetallePedido tarjeta = tarjeta(pedido, detalleId);
@@ -693,7 +700,8 @@ public class PedidoService {
     private Usuario usuarioAutenticado() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         if (auth == null || !auth.isAuthenticated() || "anonymousUser".equals(auth.getPrincipal())) return null;
-        return usuarioRepository.findByEmail(auth.getName()).orElse(null);
+        // Con la contraseña de fábrica todavía no tiene su rol: cuenta como un cliente de la web.
+        return usuarioRepository.findByEmail(auth.getName()).filter(u -> !u.tieneQueConfigurar()).orElse(null);
     }
 
     private static boolean tieneRol(Rol rol) {

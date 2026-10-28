@@ -334,6 +334,26 @@ public class VentaService {
         abrirCaja(null);
     }
 
+    /** Una línea por caja cerrada (las más nuevas primero), para la lista de Cajas anteriores. */
+    @Transactional(readOnly = true)
+    public List<Map<String, Object>> cajasCerradas(int limite) {
+        int cantidad = Math.max(1, Math.min(limite, 100));
+        return cierreCajaRepository.findByFechaCierreIsNotNullOrderByFechaAperturaDesc(
+                        org.springframework.data.domain.PageRequest.of(0, cantidad)).stream()
+                .map(c -> {
+                    Map<String, Object> m = new LinkedHashMap<>();
+                    m.put("id", c.getId());
+                    m.put("apertura", c.getFechaApertura());
+                    m.put("cierre", c.getFechaCierre());
+                    m.put("total", c.getTotalVentas());
+                    m.put("cantidadVentas", c.getCantidadVentas());
+                    m.put("diferencia", c.getDiferencia());
+                    m.put("cerradaPor", c.getCerradaPor());
+                    return m;
+                })
+                .toList();
+    }
+
     /**
      * Cajas que tuvieron movimiento en una jornada, de la más vieja a la más nueva.
      * Cada caja trae todas sus ventas, aunque algunas sean de otro día (cuando la

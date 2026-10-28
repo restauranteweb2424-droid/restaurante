@@ -13,4 +13,7 @@ public interface CierreCajaRepository extends JpaRepository<CierreCaja, Long> {
 
     /** Cajas abiertas en un rango: una caja pertenece al día en que se abrió. */
     List<CierreCaja> findByFechaAperturaBetweenOrderByFechaAperturaAsc(LocalDateTime desde, LocalDateTime hasta);
+
+    /** Las últimas cajas cerradas, de la más nueva a la más vieja. */
+    List<CierreCaja> findByFechaCierreIsNotNullOrderByFechaAperturaDesc(org.springframework.data.domain.Pageable pagina);
 }

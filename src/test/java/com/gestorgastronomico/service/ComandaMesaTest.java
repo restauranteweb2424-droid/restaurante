@@ -227,11 +227,16 @@ class ComandaMesaTest {
     }
 
     @Test
-    void mozoYCocina_cancelanLaComandaEntera_peroNoUnDelivery() {
+    void mozoCancelaLaComandaEntera_cocinaNo_yNingunoUnDelivery() {
         como(mozo);
         PedidoResponseDTO mesa = pedidoService.crear(pedidoMesa("5", item(10L, 1)));
 
         como(cocina);
+        assertThrows(BusinessException.class, () -> pedidoService.cancelar(mesa.getId()));
+        Long plato = mesa.getDetalles().get(0).getId();
+        assertThrows(BusinessException.class, () -> pedidoService.cancelarTarjeta(mesa.getId(), plato));
+
+        como(mozo);
         assertEquals(EstadoPedido.CANCELADO, pedidoService.cancelar(mesa.getId()).getEstado());
 
         Pedido delivery = Pedido.builder().id(900L).tipo(TipoPedido.DELIVERY).estado(EstadoPedido.PENDIENTE)

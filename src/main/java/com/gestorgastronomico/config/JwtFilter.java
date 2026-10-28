@@ -37,9 +37,12 @@ public class JwtFilter extends OncePerRequestFilter {
                 usuarioRepository.findByEmail(email)
                         .filter(com.gestorgastronomico.entity.Usuario::estaActivo)
                         .ifPresent(u -> {
+                            // Con la contraseña de fábrica no tiene su rol: solo puede ver
+                            // quién es y completar sus datos (configurar-cuenta).
+                            String rol = u.tieneQueConfigurar() ? "CONFIGURAR_CUENTA" : u.getRol().name();
                             var auth = new UsernamePasswordAuthenticationToken(
                                     u.getEmail(), null,
-                                    List.of(new SimpleGrantedAuthority("ROLE_" + u.getRol().name()))
+                                    List.of(new SimpleGrantedAuthority("ROLE_" + rol))
                             );
                             SecurityContextHolder.getContext().setAuthentication(auth);
                         });

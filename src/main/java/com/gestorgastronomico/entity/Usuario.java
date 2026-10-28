@@ -39,7 +39,16 @@ public class Usuario {
     @Builder.Default
     private Boolean activo = true;
 
+    // true = entra con la contraseña de fábrica: el admin tiene que completar sus
+    // datos antes de usar el panel, y los demás no pueden entrar hasta que el admin
+    // les ponga una contraseña. Null (filas anteriores a la columna) = no.
+    private Boolean debeConfigurar;
+
     public boolean estaActivo() {
         return !Boolean.FALSE.equals(activo);
+    }
+
+    public boolean tieneQueConfigurar() {
+        return Boolean.TRUE.equals(debeConfigurar);
     }
 }

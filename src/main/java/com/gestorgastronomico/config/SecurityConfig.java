@@ -64,6 +64,7 @@ public class SecurityConfig {
                 // Administración
                 .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").hasRole(ADMIN)
                 .requestMatchers(HttpMethod.GET, "/api/usuarios/me").authenticated()
+                .requestMatchers(HttpMethod.PATCH, "/api/usuarios/configurar-cuenta").authenticated()
                 .requestMatchers(HttpMethod.GET, "/api/usuarios/mozos").hasAnyRole(ADMIN, CAJERO)
                 .requestMatchers("/api/usuarios/**").hasRole(ADMIN)
                 .requestMatchers(HttpMethod.PUT, "/api/config/**").hasRole(ADMIN)
@@ -91,12 +92,15 @@ public class SecurityConfig {
                         "/api/pedidos/*/datos-cliente").hasAnyRole(ADMIN, CAJERO, MOZO)
                 .requestMatchers(HttpMethod.POST, "/api/pedidos/**").hasAnyRole(ADMIN, CAJERO, MOZO)
                 // Comanda de mesa: cada plato cambia de estado o se cancela (las reglas por rol, en PedidoService).
-                .requestMatchers(HttpMethod.PATCH, "/api/pedidos/*/detalles/*/estado",
-                        "/api/pedidos/*/detalles/*/cancelar").hasAnyRole(ADMIN, CAJERO, MOZO, COCINA)
-                .requestMatchers(HttpMethod.PATCH, "/api/pedidos/*/cancelar").hasAnyRole(ADMIN, CAJERO, MOZO, COCINA)
+                .requestMatchers(HttpMethod.PATCH, "/api/pedidos/*/detalles/*/estado").hasAnyRole(ADMIN, CAJERO, MOZO, COCINA)
+                // Cocina no cancela platos ni comandas (ronda 6).
+                .requestMatchers(HttpMethod.PATCH, "/api/pedidos/*/detalles/*/cancelar").hasAnyRole(ADMIN, CAJERO, MOZO)
+                .requestMatchers(HttpMethod.PATCH, "/api/pedidos/*/cancelar").hasAnyRole(ADMIN, CAJERO, MOZO)
                 .requestMatchers(HttpMethod.PATCH, "/api/pedidos/*/estado").hasAnyRole(ADMIN, CAJERO, COCINA)
 
-                .anyRequest().authenticated()
+                // Todo lo demás, con un rol real: quien entra con la contraseña de fábrica
+                // (CONFIGURAR_CUENTA) solo llega a /me y a configurar-cuenta.
+                .anyRequest().hasAnyRole(ADMIN, CAJERO, MOZO, COCINA)
             )
             .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
 

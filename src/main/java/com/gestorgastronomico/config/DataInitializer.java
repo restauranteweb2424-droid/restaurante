@@ -21,7 +21,6 @@ public class DataInitializer {
     public CommandLineRunner initData(
             UsuarioRepository usuarioRepo,
             ProductoRepository productoRepo,
-            ClienteRepository clienteRepo,
             JdbcTemplate jdbc) {
 
         return args -> {
@@ -37,38 +36,17 @@ public class DataInitializer {
             if (usuarioRepo.count() == 0) {
                 log.info("=== Cargando datos iniciales del sistema ===");
 
+                // Solo el admin, con la contraseña de fábrica: al entrar por primera vez
+                // carga su nombre, su email y una contraseña propia, y después crea al
+                // resto del equipo en Usuarios.
                 usuarioRepo.save(Usuario.builder()
-                        .nombre("Admin Principal")
+                        .nombre("Administrador")
                         .email("admin@miapp.com")
                         .password(passwordEncoder.encode("admin123"))
-                        .rol(Rol.ADMIN).build());
+                        .rol(Rol.ADMIN)
+                        .debeConfigurar(true).build());
 
-                usuarioRepo.save(Usuario.builder()
-                        .nombre("Carlos Cajero")
-                        .email("cajero@miapp.com")
-                        .password(passwordEncoder.encode("cajero123"))
-                        .rol(Rol.CAJERO).build());
-
-                usuarioRepo.save(Usuario.builder()
-                        .nombre("Maria Cocina")
-                        .email("cocina@miapp.com")
-                        .password(passwordEncoder.encode("cocina123"))
-                        .rol(Rol.COCINA).build());
-
-                usuarioRepo.save(Usuario.builder()
-                        .nombre("Mateo Mozo")
-                        .email("mozo@miapp.com")
-                        .password(passwordEncoder.encode("mozo123"))
-                        .rol(Rol.MOZO).build());
-
-                log.info("  ✓ Usuarios creados");
-
-                clienteRepo.save(Cliente.builder()
-                        .nombre("Lucas González").telefono("3447-551234").direccion("San Martin 450").build());
-                clienteRepo.save(Cliente.builder()
-                        .nombre("Ana Martínez").telefono("3447-221100").direccion("Belgrano 123").build());
-
-                log.info("  ✓ Clientes creados");
+                log.info("  ✓ Admin inicial creado (completa sus datos al primer ingreso)");
 
                 // Un solo producto de ejemplo, para borrar antes de cargar el menú real.
                 productoRepo.save(p("Plato de ejemplo (borrame)",
