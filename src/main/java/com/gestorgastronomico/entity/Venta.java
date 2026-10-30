@@ -49,6 +49,9 @@ public class Venta {
 
     private LocalDateTime corregidoEn;
 
+    /** Quién cobró (nombre del usuario). Null en ventas anteriores a la 1.8.0. */
+    private String cobradoPor;
+
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "pedido_id", nullable = false, unique = true)
     @ToString.Exclude

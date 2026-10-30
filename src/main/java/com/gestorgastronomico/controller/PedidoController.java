@@ -44,6 +44,12 @@ public class PedidoController {
         return ResponseEntity.ok(pedidoService.listarActivos());
     }
 
+    @GetMapping("/mesas-ocupadas")
+    @Operation(summary = "Mesas con comanda abierta", description = "Número de mesa, mozo y si está cobrada; sin platos ni montos.")
+    public ResponseEntity<List<java.util.Map<String, Object>>> mesasOcupadas() {
+        return ResponseEntity.ok(pedidoService.mesasOcupadas());
+    }
+
     @GetMapping("/estado/{estado}")
     @Operation(summary = "Pedidos en un estado (cocina solo ve los cancelados de las últimas 24 h)")
     public ResponseEntity<List<PedidoResponseDTO>> listarPorEstado(@PathVariable EstadoPedido estado) {

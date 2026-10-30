@@ -67,7 +67,7 @@ class PedidoServiceTest {
 
         when(usuarioRepository.findAll()).thenReturn(List.of(admin, mozo));
         when(productoRepository.findById(10L)).thenReturn(Optional.of(plato));
-        when(configLocalService.obtener()).thenReturn(config("auto", 0));
+        when(configLocalService.obtener()).thenReturn(config("open", 0));
         when(pedidoRepository.save(any(Pedido.class))).thenAnswer(inv -> inv.getArgument(0));
     }
 
@@ -78,7 +78,7 @@ class PedidoServiceTest {
 
     @Test
     void pedidoPublico_calculaPrecioYEnvioEnElServidor() {
-        when(configLocalService.obtener()).thenReturn(config("auto", 300));
+        when(configLocalService.obtener()).thenReturn(config("open", 300));
 
         PedidoResponseDTO pedido = pedidoService.crear(pedidoPublico(TipoPedido.DELIVERY, null, 1));
 
@@ -88,7 +88,7 @@ class PedidoServiceTest {
 
     @Test
     void envioNegativoEnLaConfiguracion_noSeDescuentaDelTotal() {
-        when(configLocalService.obtener()).thenReturn(config("auto", -800));
+        when(configLocalService.obtener()).thenReturn(config("open", -800));
 
         PedidoResponseDTO pedido = pedidoService.crear(pedidoPublico(TipoPedido.DELIVERY, null, 1));
 

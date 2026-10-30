@@ -32,8 +32,9 @@ public final class HorarioLocal {
         return !franjas(cfg).isEmpty();
     }
 
+    /** Abierto en modo automático. Sin horarios cargados cuenta como cerrado: no hay cómo saber cuándo abre. */
     public static boolean abiertoEn(ConfigLocal cfg, LocalDateTime momento) {
-        return turnoDe(cfg, momento).isPresent();
+        return tieneFranjas(cfg) && turnoDe(cfg, momento).isPresent();
     }
 
     /**

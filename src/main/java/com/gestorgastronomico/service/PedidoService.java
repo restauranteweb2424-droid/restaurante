@@ -57,11 +57,41 @@ public class PedidoService {
         return aDTOs(filtrarSegunRol(pedidoRepository.findPedidosActivos()));
     }
 
+    /**
+     * Mesas con comanda abierta: solo el número, quién la atiende y si ya está
+     * cobrada, sin platos ni montos. Sirve para que el mozo sepa al escribir el
+     * número que esa mesa la atiende otro.
+     */
+    @Transactional(readOnly = true)
+    public List<Map<String, Object>> mesasOcupadas() {
+        Usuario yo = usuarioAutenticado();
+        return pedidoRepository.findPedidosActivos().stream()
+                .filter(Pedido::esComandaPorTarjetas)
+                .filter(p -> p.getEstado() != EstadoPedido.CANCELADO && p.getMesa() != null)
+                .map(p -> {
+                    Map<String, Object> m = new LinkedHashMap<>();
+                    m.put("mesa", p.getMesa());
+                    m.put("pedidoId", p.getId());
+                    m.put("mozoId", p.getMozoId());
+                    m.put("mozoNombre", p.getMozoNombre() != null ? p.getMozoNombre() : p.getCreadoPorNombre());
+                    m.put("cobrada", p.estaPagado());
+                    // "propia": la mesa es de quien pregunta (mismo criterio que para editarla).
+                    m.put("propia", yo != null && esDelMozo(p, yo));
+                    return m;
+                })
+                .toList();
+    }
+
     @Transactional(readOnly = true)
     public List<PedidoResponseDTO> listarPorEstado(EstadoPedido estado) {
-        List<Pedido> pedidos = pedidoRepository.findByEstado(estado);
-        if (tieneRol(Rol.COCINA)) {
-            pedidos = estado == EstadoPedido.CANCELADO ? canceladosRecientes(pedidos) : List.of();
+        // Cancelados: solo los de las últimas horas (al cancelar se marca modificadoEn), para todos los roles.
+        // Se filtran en la consulta para no traer todo el historial en cada refresco.
+        List<Pedido> pedidos;
+        if (estado == EstadoPedido.CANCELADO) {
+            pedidos = pedidoRepository.findByEstadoAndModificadoEnAfter(estado,
+                    LocalDateTime.now(clock).minusHours(HORAS_CANCELADOS_VISIBLES_EN_COCINA));
+        } else {
+            pedidos = tieneRol(Rol.COCINA) ? List.of() : pedidoRepository.findByEstado(estado);
         }
         return aDTOs(filtrarSegunRol(pedidos));
     }
@@ -679,13 +709,6 @@ public class PedidoService {
             throw new BusinessException("Elegí un mozo activo para la mesa.");
         }
         return mozo;
-    }
-
-    private List<Pedido> canceladosRecientes(List<Pedido> cancelados) {
-        LocalDateTime limite = LocalDateTime.now(clock).minusHours(HORAS_CANCELADOS_VISIBLES_EN_COCINA);
-        return cancelados.stream()
-                .filter(p -> p.getModificadoEn() != null && p.getModificadoEn().isAfter(limite))
-                .toList();
     }
 
     /** El mozo solo edita sus mesas. */

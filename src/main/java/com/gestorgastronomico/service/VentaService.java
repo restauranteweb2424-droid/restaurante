@@ -75,6 +75,7 @@ public class VentaService {
                 .total(pedido.getTotal())
                 .metodoPago(dto.getMetodoPago())
                 .pedido(pedido)
+                .cobradoPor(nombreDe(SecurityContextHolder.getContext().getAuthentication()))
                 .build();
         pedido.setVenta(venta);
 
@@ -201,9 +202,15 @@ public class VentaService {
         informe.put("productos", productos);
         informe.put("ventas", ventas.stream().map(this::toDTO).toList());
         informe.put("anuladas", ventaAnuladaRepository.findByJornadaBetweenOrderByAnuladaEnAsc(desde, hasta));
+        informe.put("cancelacionesConEntregados", cancelacionesEntre(
+                desde.atTime(LocalTime.of(6, 0)), hasta.plusDays(1).atTime(LocalTime.of(6, 0))));
+        return informe;
+    }
+
+    /** Mesas canceladas con platos entregados en un rango de tiempo (para la caja y el informe). */
+    private List<Map<String, Object>> cancelacionesEntre(LocalDateTime desde, LocalDateTime hasta) {
         List<Map<String, Object>> cancelaciones = new ArrayList<>();
-        for (Pedido p : pedidoRepository.findByEntregadoAlCancelarIsNotNullAndCanceladoEnBetweenOrderByCanceladoEnAsc(
-                desde.atTime(LocalTime.of(6, 0)), hasta.plusDays(1).atTime(LocalTime.of(6, 0)))) {
+        for (Pedido p : pedidoRepository.findByEntregadoAlCancelarIsNotNullAndCanceladoEnBetweenOrderByCanceladoEnAsc(desde, hasta)) {
             Map<String, Object> c = new HashMap<>();
             c.put("pedidoId", p.getId());
             c.put("mesa", p.getMesa());
@@ -213,8 +220,7 @@ public class VentaService {
             c.put("entregado", p.getEntregadoAlCancelar());
             cancelaciones.add(c);
         }
-        informe.put("cancelacionesConEntregados", cancelaciones);
-        return informe;
+        return cancelaciones;
     }
 
     @Transactional(readOnly = true)
@@ -388,6 +394,7 @@ public class VentaService {
                         s.setEfectivoContado(c.getEfectivoContado());
                         s.setDiferencia(c.getDiferencia());
                         s.setCerradaPor(c.getCerradaPor());
+                        s.setCancelacionesConEntregados(cancelacionesEntre(c.getFechaApertura(), c.getFechaCierre()));
                         if (c.getEfectivoEsperado() != null) s.setEfectivoEsperado(c.getEfectivoEsperado());
                         cajas.add(s);
                     }
@@ -400,8 +407,10 @@ public class VentaService {
             List<Venta> ventas = ventasEntre(candidatas, desde, null);
             if (jornada.isEqual(jornadaActual()) || desde.toLocalDate().equals(jornada) || tieneVentasDe(ventas, jornada)
                     || cobroEseDia(ventas, jornada)) {
-                cajas.add(sesion(desde, null, ventas, true,
-                        movimientosEntre(movimientos, desde, null), anuladasEntre(anuladas, desde, null)));
+                SesionCajaDTO actual = sesion(desde, null, ventas, true,
+                        movimientosEntre(movimientos, desde, null), anuladasEntre(anuladas, desde, null));
+                actual.setCancelacionesConEntregados(cancelacionesEntre(desde, finVentana));
+                cajas.add(actual);
             }
         }
 
@@ -687,6 +696,9 @@ public class VentaService {
                 .metodoPagoOriginal(v.getMetodoPagoOriginal())
                 .corregidoPor(v.getCorregidoPor())
                 .corregidoEn(v.getCorregidoEn())
+                .mozoNombre(pedido != null && pedido.getMesa() != null
+                        ? (pedido.getMozoNombre() != null ? pedido.getMozoNombre() : pedido.getCreadoPorNombre()) : null)
+                .cobradoPor(v.getCobradoPor())
                 .items(itemsDe(pedido))
                 .build();
     }

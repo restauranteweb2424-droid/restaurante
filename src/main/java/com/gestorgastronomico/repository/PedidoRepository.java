@@ -16,6 +16,9 @@ public interface PedidoRepository extends JpaRepository<Pedido, Long> {
 
     List<Pedido> findByEstado(EstadoPedido estado);
 
+    /** Los pedidos en un estado que cambiaron después de cierto momento (por ejemplo, cancelados recientes). */
+    List<Pedido> findByEstadoAndModificadoEnAfter(EstadoPedido estado, java.time.LocalDateTime desde);
+
     List<Pedido> findByFecha(LocalDate fecha);
 
     List<Pedido> findByFechaAndEstado(LocalDate fecha, EstadoPedido estado);

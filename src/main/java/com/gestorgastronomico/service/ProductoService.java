@@ -225,7 +225,8 @@ public class ProductoService {
             productoRepository.deleteById(id);
             productoRepository.flush();
         } catch (org.springframework.dao.DataIntegrityViolationException e) {
-            // Figura en pedidos anteriores: se desactiva para no romper el historial.
+            // Figura en pedidos anteriores: no se borra para no romper el historial.
+            // El panel ofrece sacarlo de la carta (desactivarlo) en su lugar.
             throw new BusinessException(
                 "Este plato ya se pidió alguna vez, así que no se puede borrar sin perder el historial.");
         }

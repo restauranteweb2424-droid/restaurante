@@ -45,11 +45,14 @@ class HorarioLocalTest {
     }
 
     @Test
-    void sinTurnosCargados_abreTodoElDiaEnLosDiasHabilitados() {
+    void sinTurnosCargados_enAutomaticoCuentaComoCerrado() {
         ConfigLocal soloDias = ConfigLocal.builder().dias("1").build();
 
-        assertTrue(HorarioLocal.abiertoEn(soloDias, LUNES.atTime(3, 0)));
-        assertFalse(HorarioLocal.abiertoEn(soloDias, LUNES.plusDays(1).atTime(12, 0)));
+        // Sin horarios cargados no hay cómo saber cuándo abre: se toma como cerrado (ronda 7, W-1).
+        assertFalse(HorarioLocal.abiertoEn(soloDias, LUNES.atTime(3, 0)));
+        assertFalse(HorarioLocal.abiertoEn(soloDias, LUNES.atTime(21, 0)));
+        // El turno del día (para reservas y jornada) sigue existiendo.
+        assertTrue(HorarioLocal.turnoDe(soloDias, LUNES.atTime(21, 0)).isPresent());
     }
 
     @Test

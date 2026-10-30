@@ -85,7 +85,7 @@ public class SecurityConfig {
 
                 // Pedidos. El mozo solo ve y edita los suyos (lo controla PedidoService).
                 .requestMatchers(HttpMethod.GET, "/api/pedidos", "/api/pedidos/fecha",
-                        "/api/pedidos/entregados-desde-cierre").hasAnyRole(ADMIN, CAJERO, MOZO)
+                        "/api/pedidos/entregados-desde-cierre", "/api/pedidos/mesas-ocupadas").hasAnyRole(ADMIN, CAJERO, MOZO)
                 .requestMatchers(HttpMethod.DELETE, "/api/pedidos/*/detalles/*").hasAnyRole(ADMIN, CAJERO, MOZO)
                 .requestMatchers(HttpMethod.DELETE, "/api/pedidos/**").hasAnyRole(ADMIN, CAJERO)
                 .requestMatchers(HttpMethod.PATCH, "/api/pedidos/*/detalles/*/cantidad",

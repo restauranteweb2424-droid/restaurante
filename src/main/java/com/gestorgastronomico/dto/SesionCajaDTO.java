@@ -34,6 +34,9 @@ public class SesionCajaDTO {
     /** Cobros anulados mientras esta caja estaba abierta. */
     private List<com.gestorgastronomico.entity.VentaAnulada> anuladas;
 
+    /** Mesas canceladas con platos entregados mientras la caja estuvo abierta. */
+    private List<java.util.Map<String, Object>> cancelacionesConEntregados;
+
     // Arqueo de efectivo. En una caja abierta, efectivoContado y diferencia van en null.
     private Double fondoInicial;
     private Double ventasEfectivo;

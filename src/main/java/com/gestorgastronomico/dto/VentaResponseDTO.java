@@ -31,6 +31,10 @@ public class VentaResponseDTO {
     private MetodoPago metodoPagoOriginal;
     private String corregidoPor;
     private java.time.LocalDateTime corregidoEn;
+    /** Mozo que atendió la mesa (solo mesas). */
+    private String mozoNombre;
+    /** Quién cobró. */
+    private String cobradoPor;
     /** Lo que se cobró, una línea por plato ("2x Flan casero"); lo sacado no aparece. */
     private java.util.List<String> items;
 }
